@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(nvm list *)",
+      "Bash(nvm --version)",
+      "Read(//c/Users/Admin/AppData/Roaming/fnm/**)",
+      "Read(//c/Users/Admin/AppData/Local/**)"
+    ]
+  }
+}
