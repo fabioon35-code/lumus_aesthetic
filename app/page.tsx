@@ -293,16 +293,88 @@ export default function Home() {
     chatHistoryRef.current = [...chatHistoryRef.current, { role: "user", content: userText }];
     showTyping();
     try {
+      const today = new Date().toISOString().split("T")[0];
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: chatHistoryRef.current }),
+        body: JSON.stringify({
+          messages: chatHistoryRef.current,
+          bookingContext: bookingRef.current,
+          today,
+        }),
       });
       const data = await res.json();
-      const reply = data.message || "Lo siento, no pude procesar tu mensaje. ¿Te puedo ayudar con algo más?";
+
+      if (data.booking && typeof data.booking === "object") {
+        const b = data.booking as Record<string, string>;
+        for (const key of ["name", "service", "dateISO", "dateLabel", "time", "phone", "email"]) {
+          if (b[key] != null && b[key] !== "") bookingRef.current[key] = b[key];
+        }
+      }
+
+      if (data.intent === "booking") chatStateRef.current = "booking_llm";
+
+      let reply = (data.message as string) || "Lo siento, no pude procesar tu mensaje. ¿Te puedo ayudar con algo más?";
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        const errLines = (data.errors as { field?: string; message: string }[])
+          .map((e) => `⚠️ ${e.field ? `<strong>${e.field}</strong>: ` : ""}${e.message}`)
+          .join("<br>");
+        reply += "<br><br>" + errLines;
+      }
+
       chatHistoryRef.current = [...chatHistoryRef.current, { role: "assistant", content: reply }];
       hideTyping();
       addBotMsg(reply);
+
+      const REQUIRED = ["name", "service", "dateISO", "time", "phone", "email"];
+      const missing = REQUIRED.filter((f) => !bookingRef.current[f]);
+
+      if (chatStateRef.current === "booking_llm" && missing.length === 0) {
+        const b = bookingRef.current;
+        setTimeout(() => {
+          const card = `<div style="margin-top:8px"><div class="confirm-card">
+            <div class="confirm-row"><span class="confirm-label">Nombre</span><span class="confirm-val">${b.name}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Servicio</span><span class="confirm-val">${b.service}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Fecha</span><span class="confirm-val">${b.dateLabel || b.dateISO}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Hora</span><span class="confirm-val">${b.time}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Teléfono</span><span class="confirm-val">${b.phone}</span></div>
+            ${b.email ? `<div class="confirm-row"><span class="confirm-label">Email</span><span class="confirm-val">${b.email}</span></div>` : ""}
+          </div></div>`;
+          addBotMsg("¿Todo correcto? Confirma tu reserva. " + card);
+          setQuickReplies([
+            { text: "✦ Confirmar reserva", action: "confirm_booking" },
+            { text: "✏️ Modificar datos", action: "restart_booking" },
+          ]);
+        }, 400);
+        return;
+      }
+
+      if (chatStateRef.current === "booking_llm" && missing.length > 0) {
+        if (missing[0] === "service") {
+          setQuickReplies(SERVICES.map((s) => ({ text: s.icon + " " + s.name, action: "select_service", value: s.name })));
+          return;
+        }
+        if (missing[0] === "dateISO") {
+          const base = new Date();
+          const dates: QuickReply[] = [];
+          for (let i = 1; i <= 5; i++) {
+            const d = new Date(base);
+            d.setDate(base.getDate() + i);
+            const label = d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+            const iso = d.toISOString().split("T")[0];
+            dates.push({ text: label, action: "select_date", value: `${iso}|${label}` });
+          }
+          setQuickReplies(dates);
+          return;
+        }
+        if (missing[0] === "time") {
+          setQuickReplies(["09:00", "10:30", "12:00", "15:00", "17:00", "19:00"].map((t) => ({ text: t, action: "select_time", value: t })));
+          return;
+        }
+        setQuickReplies([]);
+        return;
+      }
+
       setQuickReplies([
         { text: "📅 Reservar cita", action: "book" },
         { text: "💆 Ver servicios", action: "services" },
@@ -317,13 +389,67 @@ export default function Home() {
 
   // ── Booking flow ───────────────────────────────────────────────────
   const startBooking = useCallback(() => {
-    chatStateRef.current = "await_name";
+    chatStateRef.current = "booking_llm";
     bookingRef.current = {};
     addBotMsg("¡Perfecto! Vamos a agendar tu cita. 📅<br><br>¿Cuál es tu <strong>nombre completo</strong>?");
     setQuickReplies([]);
   }, [addBotMsg]);
 
   const continueBooking = useCallback((step: string) => {
+    if (step === "email") {
+      // Async: call booking API
+      const confirmNum = "LM-" + Math.floor(Math.random() * 9000 + 1000);
+      chatStateRef.current = "done";
+      showTyping();
+      fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: bookingRef.current.name,
+          service: bookingRef.current.service,
+          dateLabel: bookingRef.current.dateLabel,
+          dateISO: bookingRef.current.dateISO,
+          time: bookingRef.current.time,
+          phone: bookingRef.current.phone,
+          email: bookingRef.current.email,
+          confirmNum,
+        }),
+      })
+        .then((r) => r.json())
+        .catch(() => ({ success: false }))
+        .then((data) => {
+          hideTyping();
+          const ok = data.success !== false;
+          const card = `
+            <div style="margin-top:8px">
+              <div class="confirm-card">
+                <div class="confirm-row"><span class="confirm-label">Cliente</span><span class="confirm-val">${bookingRef.current.name}</span></div>
+                <div class="confirm-row"><span class="confirm-label">Servicio</span><span class="confirm-val">${bookingRef.current.service}</span></div>
+                <div class="confirm-row"><span class="confirm-label">Fecha</span><span class="confirm-val">${bookingRef.current.dateLabel}</span></div>
+                <div class="confirm-row"><span class="confirm-label">Hora</span><span class="confirm-val">${bookingRef.current.time}</span></div>
+                <div class="confirm-row"><span class="confirm-label">Teléfono</span><span class="confirm-val">${bookingRef.current.phone}</span></div>
+                <div class="confirm-row"><span class="confirm-label">Email</span><span class="confirm-val">${bookingRef.current.email}</span></div>
+                <div class="confirm-number">${confirmNum}</div>
+                <div style="text-align:center;font-size:10px;color:var(--text-muted);letter-spacing:1px">N° DE CONFIRMACIÓN</div>
+              </div>
+            </div>`;
+          const emailNote = ok && bookingRef.current.email
+            ? `<br><small style="color:var(--text-muted)">📧 Confirmación enviada a ${bookingRef.current.email}</small>`
+            : "";
+          const calNote = data.calendar
+            ? `<br><small style="color:var(--text-muted)">📅 <a href="${data.calendar}" target="_blank" style="color:var(--gold)">Ver en Google Calendar</a></small>`
+            : "";
+          addBotMsg("✦ <strong>¡Reserva registrada con éxito!</strong>" + emailNote + calNote + card);
+          setTimeout(() => {
+            setQuickReplies([
+              { text: "🏠 Menú principal", action: "restart" },
+              { text: "📋 Ver formulario", action: "scroll_booking" },
+            ]);
+          }, 500);
+        });
+      return;
+    }
+
     showTyping();
     setTimeout(() => {
       hideTyping();
@@ -341,12 +467,13 @@ export default function Home() {
           const d = new Date(today);
           d.setDate(today.getDate() + i);
           const label = d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
-          dates.push({ text: label, action: "select_date", value: label });
+          const iso = d.toISOString().split("T")[0];
+          dates.push({ text: label, action: "select_date", value: `${iso}|${label}` });
         }
         setQuickReplies(dates);
       } else if (step === "date") {
         chatStateRef.current = "await_time";
-        addBotMsg(`Anotado: <strong>${bookingRef.current.date}</strong>. ¿A qué hora te viene mejor?`);
+        addBotMsg(`Anotado: <strong>${bookingRef.current.dateLabel}</strong>. ¿A qué hora te viene mejor?`);
         setQuickReplies([
           { text: "09:00", action: "select_time", value: "09:00" },
           { text: "10:30", action: "select_time", value: "10:30" },
@@ -357,36 +484,27 @@ export default function Home() {
         ]);
       } else if (step === "time") {
         chatStateRef.current = "await_phone";
-        addBotMsg(`Perfecto, las <strong>${bookingRef.current.time}</strong>. Por último, ¿tu número de teléfono?`);
+        addBotMsg(`Perfecto, las <strong>${bookingRef.current.time}</strong>. ¿Tu número de teléfono?`);
         setQuickReplies([]);
       } else if (step === "phone") {
-        chatStateRef.current = "done";
-        const confirmNum = "LM-" + Math.floor(Math.random() * 9000 + 1000);
-        const card = `
-          <div style="margin-top:8px">
-            <div class="confirm-card">
-              <div class="confirm-row"><span class="confirm-label">Cliente</span><span class="confirm-val">${bookingRef.current.name}</span></div>
-              <div class="confirm-row"><span class="confirm-label">Servicio</span><span class="confirm-val">${bookingRef.current.service}</span></div>
-              <div class="confirm-row"><span class="confirm-label">Fecha</span><span class="confirm-val">${bookingRef.current.date}</span></div>
-              <div class="confirm-row"><span class="confirm-label">Hora</span><span class="confirm-val">${bookingRef.current.time}</span></div>
-              <div class="confirm-row"><span class="confirm-label">Teléfono</span><span class="confirm-val">${bookingRef.current.phone}</span></div>
-              <div class="confirm-number">${confirmNum}</div>
-              <div style="text-align:center;font-size:10px;color:var(--text-muted);letter-spacing:1px">N° DE CONFIRMACIÓN</div>
-            </div>
-          </div>`;
-        addBotMsg("✦ <strong>¡Reserva registrada con éxito!</strong> Te contactaremos para confirmar." + card);
-        setTimeout(() => {
-          setQuickReplies([
-            { text: "🏠 Menú principal", action: "restart" },
-            { text: "📋 Ver formulario", action: "scroll_booking" },
-          ]);
-        }, 500);
+        chatStateRef.current = "await_email";
+        addBotMsg(`Anotado. Por último, ¿tu <strong>email</strong> para enviarte la confirmación?`);
+        setQuickReplies([]);
       }
     }, 700);
   }, [addBotMsg, hideTyping, showTyping]);
 
   // ── Process quick-reply actions ────────────────────────────────────
   const processAction = useCallback((action: string, value?: string) => {
+    if (action === "confirm_booking") { continueBooking("email"); return; }
+    if (action === "restart_booking") {
+      chatStateRef.current = "booking_llm";
+      bookingRef.current = {};
+      chatHistoryRef.current = [];
+      addBotMsg("¡Claro! Empecemos de nuevo. ¿Cuál es tu <strong>nombre completo</strong>?");
+      setQuickReplies([]);
+      return;
+    }
     showTyping();
     setTimeout(() => {
       hideTyping();
@@ -425,10 +543,13 @@ export default function Home() {
           bookingRef.current.service = value || "";
           continueBooking("service");
           break;
-        case "select_date":
-          bookingRef.current.date = value || "";
+        case "select_date": {
+          const [iso, label] = (value || "").split("|");
+          bookingRef.current.dateISO = iso;
+          bookingRef.current.dateLabel = label;
           continueBooking("date");
           break;
+        }
         case "select_time":
           bookingRef.current.time = value || "";
           continueBooking("time");
@@ -469,13 +590,8 @@ export default function Home() {
     addUserMsg(text);
     setQuickReplies([]);
 
-    const state = chatStateRef.current;
-    if (state === "await_name") { bookingRef.current.name = text; continueBooking("name"); return; }
-    if (state === "await_phone") { bookingRef.current.phone = text; continueBooking("phone"); return; }
-
-    // Free-text → AI
     callAI(text);
-  }, [addUserMsg, callAI, continueBooking, inputValue]);
+  }, [addUserMsg, callAI, inputValue]);
 
   // ── Lightbox ───────────────────────────────────────────────────────
   const openLightbox = (i: number) => { setLightboxIndex(i); setLightboxActive(true); };
@@ -483,10 +599,37 @@ export default function Home() {
   const lbNav = (dir: number) => setLightboxIndex((i) => (i + dir + GALLERY_ALL_IMGS.length) % GALLERY_ALL_IMGS.length);
 
   // ── Booking form ───────────────────────────────────────────────────
-  const submitBooking = (e: React.FormEvent) => {
+  const [formSubmitting, setFormSubmitting] = useState(false);
+
+  const submitBooking = async (e: { preventDefault(): void; target: EventTarget }) => {
     e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const fd = new FormData(form);
+    const dateISO = fd.get("date") as string;
+    const dateLabel = dateISO
+      ? new Date(dateISO + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })
+      : dateISO;
+    const confirmNum = "LM-" + Math.floor(Math.random() * 9000 + 1000);
+    setFormSubmitting(true);
+    try {
+      await fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fd.get("name"),
+          phone: fd.get("phone"),
+          email: fd.get("email"),
+          service: fd.get("service"),
+          dateISO,
+          dateLabel,
+          time: fd.get("time"),
+          confirmNum,
+        }),
+      });
+    } catch { /* show modal anyway */ }
+    setFormSubmitting(false);
     setSuccessModalOpen(true);
-    (e.target as HTMLFormElement).reset();
+    form.reset();
   };
 
   return (
@@ -761,31 +904,31 @@ export default function Home() {
             <div className="section-divider" data-aos="fade-up" data-aos-delay="100" style={{ margin: "24px auto" }} />
             <p data-aos="fade-up" data-aos-delay="150">Completa el formulario y uno de nuestros especialistas confirmará tu reserva en menos de 2 horas.</p>
             <form className="booking-form" onSubmit={submitBooking} data-aos="fade-up" data-aos-delay="200">
-              <div className="form-group"><label>Nombre Completo</label><input type="text" placeholder="Tu nombre" required /></div>
-              <div className="form-group"><label>Teléfono</label><input type="tel" placeholder="+34 600 000 000" required /></div>
-              <div className="form-group"><label>Email</label><input type="email" placeholder="tu@email.com" required /></div>
+              <div className="form-group"><label>Nombre Completo</label><input name="name" type="text" placeholder="Tu nombre" required /></div>
+              <div className="form-group"><label>Teléfono</label><input name="phone" type="tel" placeholder="+34 600 000 000" required /></div>
+              <div className="form-group"><label>Email</label><input name="email" type="email" placeholder="tu@email.com" required /></div>
               <div className="form-group">
                 <label>Servicio</label>
-                <select required>
+                <select name="service" required defaultValue="">
                   <option value="" disabled>Seleccionar servicio...</option>
-                  <option>Rejuvenecimiento Facial (€85+)</option>
-                  <option>Masaje Terapéutico (€70+)</option>
-                  <option>Nail Art Studio (€35+)</option>
-                  <option>Hair & Color (€60+)</option>
-                  <option>Depilación & Threading (€25+)</option>
-                  <option>Tratamiento Corporal (€90+)</option>
+                  <option value="Rejuvenecimiento Facial">Rejuvenecimiento Facial (€85+)</option>
+                  <option value="Masaje Terapéutico">Masaje Terapéutico (€70+)</option>
+                  <option value="Nail Art Studio">Nail Art Studio (€35+)</option>
+                  <option value="Hair & Color">Hair &amp; Color (€60+)</option>
+                  <option value="Depilación & Threading">Depilación &amp; Threading (€25+)</option>
+                  <option value="Tratamiento Corporal">Tratamiento Corporal (€90+)</option>
                 </select>
               </div>
-              <div className="form-group"><label>Fecha Preferida</label><input type="date" required /></div>
+              <div className="form-group"><label>Fecha Preferida</label><input name="date" type="date" required /></div>
               <div className="form-group">
                 <label>Hora Preferida</label>
-                <select required>
+                <select name="time" required defaultValue="">
                   <option value="" disabled>Seleccionar hora...</option>
-                  {["09:00","10:00","11:00","12:00","13:00","15:00","16:00","17:00","18:00","19:00"].map((h) => <option key={h}>{h}</option>)}
+                  {["09:00","10:30","12:00","15:00","17:00","19:00"].map((h) => <option key={h}>{h}</option>)}
                 </select>
               </div>
               <div className="form-group full"><label>Notas Adicionales</label><input type="text" placeholder="Alergias, preferencias especiales..." /></div>
-              <div className="form-group full"><button type="submit" className="btn-primary">Confirmar Reserva</button></div>
+              <div className="form-group full"><button type="submit" className="btn-primary" disabled={formSubmitting}>{formSubmitting ? "Enviando..." : "Confirmar Reserva"}</button></div>
             </form>
           </div>
         </div>

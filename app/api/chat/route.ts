@@ -1,69 +1,109 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SYSTEM_PROMPT = `Eres el asistente virtual de LUMUS Estética, un salón de belleza de alta gama en Madrid.
+const VALID_SERVICES = [
+  "Rejuvenecimiento Facial",
+  "Masaje Terapéutico",
+  "Nail Art Studio",
+  "Hair & Color",
+  "Depilación & Threading",
+  "Tratamiento Corporal",
+];
 
+const VALID_TIMES = ["09:00", "10:30", "12:00", "15:00", "17:00", "19:00"];
+
+function buildSystemPrompt(today: string, bookingContext: Record<string, string>) {
+  const ctxLines = Object.entries(bookingContext)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `  ${k}: ${v}`)
+    .join("\n");
+  const ctxStr = ctxLines ? `\nCONTEXTO DE RESERVA ACTUAL (campos ya recopilados):\n${ctxLines}\n` : "";
+
+  return `Eres el asistente virtual de LUMUS Estética, salón de belleza de alta gama en Madrid.
+Hoy es: ${today}
+${ctxStr}
 INFORMACIÓN DEL NEGOCIO:
-- Nombre: LUMUS Estética
-- Dirección: Calle Serrano 42, 28001 Madrid, España
-- Metro: Serrano (L4) | Bus: 1, 9, 19, 51
-- Teléfono: +34 911 234 567
-- Email: lumus@estetica.es
-- Horario: Lunes–Sábado 9:00–20:00 | Domingo 10:00–18:00
-- Abierto desde 2016
+- Dirección: Calle Serrano 42, 28001 Madrid | Metro: Serrano (L4)
+- Teléfono: +34 911 234 567 | Email: lumus@estetica.es
+- Horario: Lun–Sáb 9:00–20:00 | Dom 10:00–18:00
 
-SERVICIOS Y PRECIOS:
-- Rejuvenecimiento Facial: desde €85 (60 min) — tratamientos faciales premium, hidratación profunda, lifting sin cirugía
-- Masaje Terapéutico: desde €70 (75 min) — masajes relajantes/terapéuticos, piedras calientes, aceites esenciales
-- Nail Art Studio: desde €35 (45 min) — diseños personalizados, semipermanente, extensiones
-- Hair & Color: desde €60 (120 min) — coloración, mechas, balayage, tratamientos capilares
-- Depilación & Threading: desde €25 (30 min) — láser, cera, threading
-- Tratamiento Corporal: desde €90 (90 min) — envolturas, exfoliaciones, reducción de medidas, drenaje linfático
+SERVICIOS DISPONIBLES (usar nombre EXACTO):
+${VALID_SERVICES.map((s) => `- ${s}`).join("\n")}
 
-EQUIPO:
-- Sofía Martínez: Directora & Facial Expert (12 años de experiencia, certificada en París y Londres)
-- Elena Ruiz: Masaje & Bienestar (terapeuta holística, técnicas orientales, drenaje linfático)
-- Carmen López: Nail Artist & Color (más de 200 diseños exclusivos, nail art japonés)
-- Isabella Torres: Colorista & Estilista (Escuela Vidal Sassoon, balayage y coloración orgánica)
+HORARIOS DISPONIBLES: ${VALID_TIMES.join(", ")}
 
-INSTRUCCIONES:
-- Responde siempre en español, con tono elegante y profesional
-- Sé conciso pero amable (máximo 3-4 oraciones por respuesta)
-- Para reservas, invita al cliente a usar el formulario de reserva en la web o llamar al +34 911 234 567
-- Si preguntan algo que no sabes, redirige al teléfono o WhatsApp
-- Nunca inventes información que no esté en este prompt`;
+INSTRUCCIONES CRÍTICAS:
+1. Responde SIEMPRE con JSON válido, sin texto fuera del JSON, sin markdown.
+2. El campo "message" contiene tu respuesta en español, tono elegante, puede contener HTML básico (<strong>, <br>).
+3. Extrae datos de reserva de CUALQUIER mensaje del usuario, aunque los dé todos a la vez.
+4. Si el usuario menciona un servicio parecido (ej: "masaje", "facial", "uñas"), mapéalo al nombre exacto de la lista.
+5. Convierte fechas relativas ("mañana", "el lunes", "el viernes que viene") a ISO usando la fecha de hoy (${today}).
+6. Convierte horas aproximadas ("las 3", "a las 10") al slot más cercano disponible.
+7. Valida: fechas deben ser futuras, servicios deben estar en la lista, horas deben ser slots válidos.
+8. Si un campo es inválido, inclúyelo en "errors" con explicación clara y NO lo incluyas en "booking".
+9. Si el usuario NO tiene intención de reservar, pon "intent": "info" y "booking": null.
+10. Si ya tienes todos los campos (name, service, dateISO, time, phone, email) y el contexto los confirma, pon "readyToConfirm": true.
+
+FORMATO DE RESPUESTA (JSON estricto):
+{
+  "message": "texto de respuesta para el usuario",
+  "intent": "booking | info | cancel | other",
+  "booking": {
+    "name": "nombre completo o null",
+    "service": "nombre exacto del servicio o null",
+    "dateISO": "YYYY-MM-DD o null",
+    "dateLabel": "texto legible ej: viernes 23 may. o null",
+    "time": "HH:MM o null",
+    "phone": "teléfono o null",
+    "email": "email o null"
+  },
+  "errors": [{
+    "field": "Nombre Completo | Servicio | Fecha | Hora | Telefono | E-mail",
+     "message": "mensaje de error"
+}],
+  "readyToConfirm": false
+}`;
+}
+
+function parseResponse(raw: string): Record<string, unknown> {
+  const cleaned = raw.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch { /* fall through */ }
+    }
+    return { message: raw, intent: "other", booking: null, errors: [], readyToConfirm: false };
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json();
+    const { messages, bookingContext = {}, today = new Date().toISOString().split("T")[0] } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Messages array required" }, { status: 400 });
     }
 
+    const systemPrompt = buildSystemPrompt(today, bookingContext);
     const useClaudeApi = process.env.USE_CLAUDE_API === "true";
 
     if (useClaudeApi) {
-      return await callClaudeApi(messages);
+      return await callClaudeApi(messages, systemPrompt);
     } else {
-      return await callOpenRouter(messages);
+      return await callOpenRouter(messages, systemPrompt);
     }
   } catch (error) {
     console.error("Chat API error:", error);
-    return NextResponse.json(
-      { error: "Error al procesar tu mensaje. Por favor intenta de nuevo." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error al procesar tu mensaje." }, { status: 500 });
   }
 }
 
-async function callOpenRouter(messages: { role: string; content: string }[]) {
+async function callOpenRouter(messages: { role: string; content: string }[], systemPrompt: string) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "OpenRouter API key no configurada." },
-      { status: 500 }
-    );
-  }
+  if (!apiKey) return NextResponse.json({ error: "OpenRouter API key no configurada." }, { status: 500 });
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -75,36 +115,25 @@ async function callOpenRouter(messages: { role: string; content: string }[]) {
     },
     body: JSON.stringify({
       model: "deepseek/deepseek-v4-flash:free",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        ...messages,
-      ],
-      max_tokens: 300,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      max_tokens: 600,
+      response_format: { type: "json_object" },
     }),
   });
 
   if (!response.ok) {
-    const errText = await response.text();
-    console.error("OpenRouter error:", errText);
-    return NextResponse.json(
-      { error: "Error con el servicio de IA. Intenta de nuevo." },
-      { status: 502 }
-    );
+    console.error("OpenRouter error:", await response.text());
+    return NextResponse.json({ error: "Error con el servicio de IA." }, { status: 502 });
   }
 
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content ?? "Lo siento, no pude procesar tu mensaje.";
-  return NextResponse.json({ message: content });
+  const raw = data.choices?.[0]?.message?.content ?? "{}";
+  return NextResponse.json(parseResponse(raw));
 }
 
-async function callClaudeApi(messages: { role: string; content: string }[]) {
+async function callClaudeApi(messages: { role: string; content: string }[], systemPrompt: string) {
   const apiKey = process.env.CLAUDE_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Claude API key no configurada." },
-      { status: 500 }
-    );
-  }
+  if (!apiKey) return NextResponse.json({ error: "Claude API key no configurada." }, { status: 500 });
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -115,25 +144,18 @@ async function callClaudeApi(messages: { role: string; content: string }[]) {
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 300,
-      system: SYSTEM_PROMPT,
-      messages: messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      max_tokens: 600,
+      system: systemPrompt,
+      messages: messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
     }),
   });
 
   if (!response.ok) {
-    const errText = await response.text();
-    console.error("Claude API error:", errText);
-    return NextResponse.json(
-      { error: "Error con el servicio de IA. Intenta de nuevo." },
-      { status: 502 }
-    );
+    console.error("Claude API error:", await response.text());
+    return NextResponse.json({ error: "Error con el servicio de IA." }, { status: 502 });
   }
 
   const data = await response.json();
-  const content = data.content?.[0]?.text ?? "Lo siento, no pude procesar tu mensaje.";
-  return NextResponse.json({ message: content });
+  const raw = data.content?.[0]?.text ?? "{}";
+  return NextResponse.json(parseResponse(raw));
 }
