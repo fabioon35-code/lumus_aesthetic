@@ -200,10 +200,11 @@ nav.scrolled {
   padding: 0 24px;
 }
 .hero-eyebrow {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 5px;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--gold-light);
+  text-shadow: 0 0 20px rgba(232,213,183,.4);
   margin-bottom: 24px;
   opacity: 0;
   animation: fadeUp .8s ease .3s forwards;
@@ -222,7 +223,7 @@ nav.scrolled {
 .hero-sub {
   font-size: 13px;
   letter-spacing: 1.5px;
-  color: var(--text-muted);
+  color: #b8a898;
   max-width: 480px;
   margin: 0 auto 44px;
   line-height: 1.8;
@@ -937,3 +938,202 @@ footer { background: var(--dark); border-top: 1px solid rgba(201,169,110,.1); pa
 /* AOS animations */
 [data-aos] { pointer-events: none; }
 [data-aos].aos-animate { pointer-events: auto; }
+
+/* ── Calendar ──────────────────────────────────────────────────────── */
+.cal-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(201,169,110,.2);
+  color: var(--text-muted);
+  padding: 14px 16px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: border-color .25s, color .25s;
+  text-align: left;
+}
+.cal-trigger:hover { border-color: rgba(201,169,110,.5); color: var(--text); }
+.cal-trigger--selected { color: var(--gold-light); border-color: rgba(201,169,110,.4); }
+.cal-trigger svg { flex-shrink: 0; color: var(--gold); }
+
+.cal-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #141414;
+  border: 1px solid rgba(201,169,110,.25);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(201,169,110,.08);
+  z-index: 100;
+  padding: 20px;
+  animation: calFadeIn .18s ease;
+}
+@keyframes calFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.cal-month-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.cal-nav {
+  background: none;
+  border: 1px solid rgba(201,169,110,.2);
+  color: var(--gold);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  line-height: 1;
+}
+.cal-nav:hover { background: rgba(201,169,110,.1); border-color: rgba(201,169,110,.5); }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-day-hdr {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 4px 0 8px;
+}
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  font-family: var(--font-sans);
+}
+.cal-day:hover:not(:disabled):not(.cal-day--empty) {
+  background: rgba(201,169,110,.12);
+  border-color: rgba(201,169,110,.3);
+  color: var(--gold-light);
+}
+.cal-day--empty { cursor: default; }
+.cal-day--past  { color: #3a3530; cursor: default; }
+.cal-day--today { border-color: rgba(201,169,110,.35); color: var(--gold); }
+.cal-day--selected {
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+  color: #0A0A0A;
+  border-color: transparent;
+  font-weight: 600;
+}
+.cal-day--selected:hover { background: linear-gradient(135deg, var(--gold), var(--gold-light)); }
+
+/* ── Service Dropdown ──────────────────────────────────────────────── */
+.svc-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #141414;
+  border: 1px solid rgba(201,169,110,.25);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  z-index: 100;
+  overflow: hidden;
+  animation: calFadeIn .18s ease;
+}
+.svc-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(201,169,110,.06);
+  cursor: pointer;
+  transition: background .15s;
+  text-align: left;
+}
+.svc-option:last-child { border-bottom: none; }
+.svc-option:hover { background: rgba(201,169,110,.07); }
+.svc-option--selected { background: rgba(201,169,110,.1); }
+.svc-option-icon {
+  font-size: 14px;
+  color: var(--gold);
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+.svc-option-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--cream);
+  font-family: var(--font-sans);
+  letter-spacing: .5px;
+}
+.svc-option--selected .svc-option-name { color: var(--gold-light); }
+.svc-option-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: .5px;
+  flex-shrink: 0;
+}
+
+/* ── Time Dropdown ─────────────────────────────────────────────────── */
+.time-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #141414;
+  border: 1px solid rgba(201,169,110,.25);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  z-index: 100;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  animation: calFadeIn .18s ease;
+}
+.time-slot-btn {
+  padding: 14px 8px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(201,169,110,.15);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.time-slot-btn:hover {
+  background: rgba(201,169,110,.1);
+  border-color: rgba(201,169,110,.4);
+  color: var(--gold-light);
+}
+.time-slot-btn--selected {
+  background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+  border-color: transparent;
+  color: var(--black);
+  font-weight: 600;
+}

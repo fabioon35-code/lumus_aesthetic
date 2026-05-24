@@ -18,12 +18,12 @@ function buildSystemPrompt(today: string, bookingContext: Record<string, string>
     .join("\n");
   const ctxStr = ctxLines ? `\nCONTEXTO DE RESERVA ACTUAL (campos ya recopilados):\n${ctxLines}\n` : "";
 
-  return `Eres el asistente virtual de LUMUS Estética, salón de belleza de alta gama en Madrid.
+  return `Eres el asistente virtual de LUMUS Estética, salón de belleza de alta gama en Santiago del Estero, Argentina.
 Hoy es: ${today}
 ${ctxStr}
 INFORMACIÓN DEL NEGOCIO:
-- Dirección: Calle Serrano 42, 28001 Madrid | Metro: Serrano (L4)
-- Teléfono: +34 911 234 567 | Email: lumus@estetica.es
+- Dirección: Av. Belgrano 450, Santiago del Estero, Argentina
+- Teléfono: +54 385 400 0000 | Email: lumus@estetica.com.ar
 - Horario: Lun–Sáb 9:00–20:00 | Dom 10:00–18:00
 
 SERVICIOS DISPONIBLES (usar nombre EXACTO):

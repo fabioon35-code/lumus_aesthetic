@@ -3,19 +3,19 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
 const SERVICES = [
-  { name: "Rejuvenecimiento Facial", price: "€85", duration: "60 min", icon: "✦" },
-  { name: "Masaje Terapéutico", price: "€70", duration: "75 min", icon: "◈" },
-  { name: "Nail Art Studio", price: "€35", duration: "45 min", icon: "◆" },
-  { name: "Hair & Color", price: "€60", duration: "120 min", icon: "◉" },
-  { name: "Depilación & Threading", price: "€25", duration: "30 min", icon: "◇" },
-  { name: "Tratamiento Corporal", price: "€90", duration: "90 min", icon: "⬡" },
+  { name: "Rejuvenecimiento Facial", price: "$85.000", duration: "60 min", icon: "✦" },
+  { name: "Masaje Terapéutico", price: "$70.000", duration: "75 min", icon: "◈" },
+  { name: "Nail Art Studio", price: "$35.000", duration: "45 min", icon: "◆" },
+  { name: "Hair & Color", price: "$60.000", duration: "120 min", icon: "◉" },
+  { name: "Depilación & Threading", price: "$25.000", duration: "30 min", icon: "◇" },
+  { name: "Tratamiento Corporal", price: "$90.000", duration: "90 min", icon: "⬡" },
 ];
 
 const GALLERY_SERVICES = [
   {
     label: "Rejuvenecimiento Facial",
     imgs: [
-      { src: "https://images.unsplash.com/photo-1487412947147-5cebf100d7fb?w=800&q=85", alt: "Tratamiento facial" },
+      { src: "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=800&q=85", alt: "Masaje facial" },
       { src: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&q=85", alt: "Facial premium" },
     ],
   },
@@ -23,12 +23,13 @@ const GALLERY_SERVICES = [
     label: "Nail Art Studio",
     imgs: [
       { src: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=800&q=85", alt: "Nail art diseño" },
+      { src: "https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=800&q=85", alt: "Nail art colores" },
     ],
   },
   {
     label: "Masaje Terapéutico",
     imgs: [
-      { src: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=85", alt: "Masaje relajante" },
+      { src: "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=85", alt: "Masaje relajante" },
       { src: "https://images.unsplash.com/photo-1552693673-1bf958298935?w=800&q=85", alt: "Masaje terapéutico" },
     ],
   },
@@ -43,12 +44,14 @@ const GALLERY_SERVICES = [
     label: "Tratamiento Corporal",
     imgs: [
       { src: "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=800&q=85", alt: "Tratamiento corporal" },
+      { src: "https://images.unsplash.com/photo-1519824145371-296894a0daa9?w=800&q=85", alt: "Exfoliación corporal" },
     ],
   },
   {
     label: "Spa & Ambiente",
     imgs: [
-      { src: "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=800&q=85", alt: "Spa interior" },
+      { src: "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=800&q=85", alt: "Spa masaje profesional" },
+      { src: "https://images.unsplash.com/photo-1615529328331-f8917597711f?w=800&q=85", alt: "Sala spa de lujo" },
     ],
   },
 ];
@@ -85,6 +88,16 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoClicked, setLogoClicked] = useState(false);
   const [wppClicked, setWppClicked] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
+  const [calSelected, setCalSelected] = useState<Date | null>(null);
+  const [calView, setCalView] = useState(() => { const d = new Date(); d.setDate(1); return d; });
+  const calRef = useRef<HTMLDivElement>(null);
+  const [svcOpen, setSvcOpen] = useState(false);
+  const [svcSelected, setSvcSelected] = useState("");
+  const svcRef = useRef<HTMLDivElement>(null);
+  const [timeOpen, setTimeOpen] = useState(false);
+  const [timeSelected, setTimeSelected] = useState("");
+  const timeRef = useRef<HTMLDivElement>(null);
 
   const handleLogoClick = () => {
     setLogoClicked(true);
@@ -102,6 +115,63 @@ export default function Home() {
   const chatInitialized = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // ── Dropdown click-outside close ──────────────────────────────────
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (calRef.current && !calRef.current.contains(t)) setCalOpen(false);
+      if (svcRef.current && !svcRef.current.contains(t)) setSvcOpen(false);
+      if (timeRef.current && !timeRef.current.contains(t)) setTimeOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // ── Calendar helpers ───────────────────────────────────────────────
+  const calDays = (() => {
+    const year = calView.getFullYear();
+    const month = calView.getMonth();
+    const first = new Date(year, month, 1).getDay();
+    const total = new Date(year, month + 1, 0).getDate();
+    const days: (number | null)[] = Array(first === 0 ? 6 : first - 1).fill(null);
+    for (let d = 1; d <= total; d++) days.push(d);
+    while (days.length % 7 !== 0) days.push(null);
+    return days;
+  })();
+
+  const calSelectDay = (day: number) => {
+    const d = new Date(calView.getFullYear(), calView.getMonth(), day);
+    setCalSelected(d);
+    setCalOpen(false);
+  };
+
+  const calIsPast = (day: number) => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return new Date(calView.getFullYear(), calView.getMonth(), day) < today;
+  };
+
+  const calIsSelected = (day: number) =>
+    calSelected?.getFullYear() === calView.getFullYear() &&
+    calSelected?.getMonth() === calView.getMonth() &&
+    calSelected?.getDate() === day;
+
+  const calIsToday = (day: number) => {
+    const t = new Date();
+    return t.getFullYear() === calView.getFullYear() && t.getMonth() === calView.getMonth() && t.getDate() === day;
+  };
+
+  const calPrevMonth = () => setCalView(v => new Date(v.getFullYear(), v.getMonth() - 1, 1));
+  const calNextMonth = () => setCalView(v => new Date(v.getFullYear(), v.getMonth() + 1, 1));
+
+  const calLabel = calSelected
+    ? calSelected.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
+    : "Seleccionar fecha";
+
+  const calIsoValue = calSelected ? calSelected.toISOString().split("T")[0] : "";
+
+  const CAL_MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const CAL_DAYS_HDR = ["Lu","Ma","Mi","Ju","Vi","Sá","Do"];
 
   // ── Scroll messages to bottom ──────────────────────────────────────
   useEffect(() => {
@@ -382,7 +452,7 @@ export default function Home() {
       ]);
     } catch {
       hideTyping();
-      addBotMsg("Lo siento, hay un problema de conexión. Llámanos al <strong>+34 911 234 567</strong>.");
+      addBotMsg("Lo siento, hay un problema de conexión. Llámanos al <strong>+54 385 400 0000</strong>.");
       setQuickReplies([{ text: "🏠 Menú", action: "restart" }]);
     }
   }, [addBotMsg, hideTyping, showTyping]);
@@ -520,7 +590,7 @@ export default function Home() {
           break;
         }
         case "hours":
-          addBotMsg("<strong>Horarios LUMUS:</strong><br><br>🗓 <strong>Lunes – Sábado</strong><br>9:00 – 20:00<br><br>🗓 <strong>Domingo</strong><br>10:00 – 18:00<br><br>📞 +34 911 234 567");
+          addBotMsg("<strong>Horarios LUMUS:</strong><br><br>🗓 <strong>Lunes – Sábado</strong><br>9:00 – 20:00<br><br>🗓 <strong>Domingo</strong><br>10:00 – 18:00<br><br>📞 +54 385 400 0000");
           setTimeout(() => setQuickReplies([{ text: "📅 Reservar cita", action: "book" }, { text: "📍 Ubicación", action: "location" }, { text: "🏠 Menú", action: "restart" }]), 300);
           break;
         case "prices": {
@@ -532,11 +602,11 @@ export default function Home() {
           break;
         }
         case "location":
-          addBotMsg("<strong>Dónde encontrarnos:</strong><br><br>📍 <strong>Calle Serrano 42</strong><br>28001 Madrid, España<br><br>🚇 Metro: Serrano (L4)<br>🚌 Bus: 1, 9, 19, 51<br><br><a href=\"https://maps.google.com?q=Calle+Serrano+42+Madrid\" target=\"_blank\" style=\"color:var(--gold)\">Ver en Google Maps →</a>");
+          addBotMsg("<strong>Dónde encontrarnos:</strong><br><br>📍 <strong>Av. Belgrano 450</strong><br>Santiago del Estero, Argentina<br><br>🚌 Acceso en transporte urbano<br><br><a href=\"https://maps.google.com?q=Av+Belgrano+450+Santiago+del+Estero+Argentina\" target=\"_blank\" style=\"color:var(--gold)\">Ver en Google Maps →</a>");
           setTimeout(() => setQuickReplies([{ text: "📅 Reservar cita", action: "book" }, { text: "🕐 Horarios", action: "hours" }, { text: "🏠 Menú", action: "restart" }]), 300);
           break;
         case "advisor":
-          addBotMsg("Conectándote con un asesor... 💬<br><br><a href=\"https://wa.me/34911234567\" target=\"_blank\" style=\"display:inline-block;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;padding:10px 20px;text-decoration:none;font-size:12px;font-weight:600;letter-spacing:1px;margin-top:8px\">💬 WhatsApp Directo</a><br><br>📞 +34 911 234 567");
+          addBotMsg("Conectándote con un asesor... 💬<br><br><a href=\"https://wa.me/543854000000\" target=\"_blank\" style=\"display:inline-block;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;padding:10px 20px;text-decoration:none;font-size:12px;font-weight:600;letter-spacing:1px;margin-top:8px\">💬 WhatsApp Directo</a><br><br>📞 +54 385 400 0000");
           setTimeout(() => setQuickReplies([{ text: "📅 Reservar cita", action: "book" }, { text: "🏠 Menú", action: "restart" }]), 300);
           break;
         case "select_service":
@@ -630,6 +700,9 @@ export default function Home() {
     setFormSubmitting(false);
     setSuccessModalOpen(true);
     form.reset();
+    setSvcSelected("");
+    setCalSelected(null);
+    setTimeSelected("");
   };
 
   return (
@@ -640,7 +713,7 @@ export default function Home() {
 
       {/* NAV */}
       <nav id="main-nav">
-        <a href="#hero" className={`nav-logo${logoClicked ? " logo-clicked" : ""}`} onClick={handleLogoClick}>LUM<span>US</span></a>
+        <a href="https://lumuslabs.com" target="_blank" rel="noopener noreferrer" className={`nav-logo${logoClicked ? " logo-clicked" : ""}`} onClick={handleLogoClick}>LUM<span>US</span></a>
         <ul className="nav-links">
           <li><a href="#services">Servicios</a></li>
           <li><a href="#about">Nosotros</a></li>
@@ -668,7 +741,7 @@ export default function Home() {
         <div className="hero-overlay" />
         <div className="hero-particles" id="particles" />
         <div className="hero-content">
-          <p className="hero-eyebrow">Estética de Alta Gama · Madrid</p>
+          <p className="hero-eyebrow">Estética de Alta Gama · Santiago del Estero</p>
           <h1 className="hero-title">Donde la Belleza<br /><em>Encuentra su Esencia</em></h1>
           <p className="hero-sub">Rituales de belleza exclusivos que transforman cuerpo y mente. Una experiencia sensorial diseñada para ti.</p>
           <div className="hero-ctas">
@@ -701,7 +774,7 @@ export default function Home() {
             </svg>
             <h3 className="service-name">Rejuvenecimiento Facial</h3>
             <p className="service-desc">Tratamientos faciales con tecnología de última generación. Hidratación profunda, lifting sin cirugía y luminosidad excepcional.</p>
-            <p className="service-price">Desde <strong>€ 85</strong></p>
+            <p className="service-price">Desde <strong>$ 85.000</strong></p>
           </div>
           <div className="service-card" data-aos="fade-up" data-aos-delay="80">
             <svg className="service-icon" width="44" height="44" viewBox="0 0 44 44" fill="none">
@@ -711,7 +784,7 @@ export default function Home() {
             </svg>
             <h3 className="service-name">Masaje Terapéutico</h3>
             <p className="service-desc">Desde masajes relajantes hasta terapéuticos con piedras calientes y aceites esenciales de origen botánico.</p>
-            <p className="service-price">Desde <strong>€ 70</strong></p>
+            <p className="service-price">Desde <strong>$ 70.000</strong></p>
           </div>
           <div className="service-card" data-aos="fade-up" data-aos-delay="160">
             <svg className="service-icon" width="44" height="44" viewBox="0 0 44 44" fill="none">
@@ -721,7 +794,7 @@ export default function Home() {
             </svg>
             <h3 className="service-name">Nail Art Studio</h3>
             <p className="service-desc">Arte en tus manos. Diseños personalizados, semipermanente, extensiones y tratamientos de uñas con productos premium.</p>
-            <p className="service-price">Desde <strong>€ 35</strong></p>
+            <p className="service-price">Desde <strong>$ 35.000</strong></p>
           </div>
           <div className="service-card" data-aos="fade-up" data-aos-delay="0">
             <svg className="service-icon" width="44" height="44" viewBox="0 0 44 44" fill="none">
@@ -731,7 +804,7 @@ export default function Home() {
             </svg>
             <h3 className="service-name">Hair & Color</h3>
             <p className="service-desc">Coloración profesional, mechas, balayage y tratamientos capilares de recuperación con las mejores marcas del mercado.</p>
-            <p className="service-price">Desde <strong>€ 60</strong></p>
+            <p className="service-price">Desde <strong>$ 60.000</strong></p>
           </div>
           <div className="service-card" data-aos="fade-up" data-aos-delay="80">
             <svg className="service-icon" width="44" height="44" viewBox="0 0 44 44" fill="none">
@@ -743,7 +816,7 @@ export default function Home() {
             </svg>
             <h3 className="service-name">Depilación & Threading</h3>
             <p className="service-desc">Técnicas de depilación láser, cera y threading para un resultado suave y duradero. Piel perfectamente cuidada.</p>
-            <p className="service-price">Desde <strong>€ 25</strong></p>
+            <p className="service-price">Desde <strong>$ 25.000</strong></p>
           </div>
           <div className="service-card" data-aos="fade-up" data-aos-delay="160">
             <svg className="service-icon" width="44" height="44" viewBox="0 0 44 44" fill="none">
@@ -753,7 +826,7 @@ export default function Home() {
             </svg>
             <h3 className="service-name">Tratamientos Corporales</h3>
             <p className="service-desc">Envolturas, exfoliaciones, reducción de medidas y drenaje linfático para una silueta perfecta y una piel radiante.</p>
-            <p className="service-price">Desde <strong>€ 90</strong></p>
+            <p className="service-price">Desde <strong>$ 90.000</strong></p>
           </div>
         </div>
       </section>
@@ -777,7 +850,7 @@ export default function Home() {
             <div className="about-img-main">
               <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80" alt="LUMUS Estética interior" />
             </div>
-            <div className="about-badge"><span>N°1</span><span>Madrid</span></div>
+            <div className="about-badge"><span>N°1</span><span>Sgo. Estero</span></div>
           </div>
         </div>
       </section>
@@ -907,25 +980,106 @@ export default function Home() {
               <div className="form-group"><label>Nombre Completo</label><input name="name" type="text" placeholder="Tu nombre" required /></div>
               <div className="form-group"><label>Teléfono</label><input name="phone" type="tel" placeholder="+34 600 000 000" required /></div>
               <div className="form-group"><label>Email</label><input name="email" type="email" placeholder="tu@email.com" required /></div>
-              <div className="form-group">
+              <div className="form-group" style={{ position: "relative" }} ref={svcRef}>
                 <label>Servicio</label>
-                <select name="service" required defaultValue="">
-                  <option value="" disabled>Seleccionar servicio...</option>
-                  <option value="Rejuvenecimiento Facial">Rejuvenecimiento Facial (€85+)</option>
-                  <option value="Masaje Terapéutico">Masaje Terapéutico (€70+)</option>
-                  <option value="Nail Art Studio">Nail Art Studio (€35+)</option>
-                  <option value="Hair & Color">Hair &amp; Color (€60+)</option>
-                  <option value="Depilación & Threading">Depilación &amp; Threading (€25+)</option>
-                  <option value="Tratamiento Corporal">Tratamiento Corporal (€90+)</option>
-                </select>
+                <input type="hidden" name="service" value={svcSelected} required />
+                <button
+                  type="button"
+                  className={`cal-trigger${svcSelected ? " cal-trigger--selected" : ""}`}
+                  onClick={() => { setSvcOpen(o => !o); setCalOpen(false); setTimeOpen(false); }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                  </svg>
+                  <span>{svcSelected || "Seleccionar servicio..."}</span>
+                  <svg style={{ marginLeft: "auto" }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                {svcOpen && (
+                  <div className="svc-dropdown">
+                    {SERVICES.map(s => (
+                      <button
+                        key={s.name}
+                        type="button"
+                        className={`svc-option${svcSelected === s.name ? " svc-option--selected" : ""}`}
+                        onClick={() => { setSvcSelected(s.name); setSvcOpen(false); }}
+                      >
+                        <span className="svc-option-icon">{s.icon}</span>
+                        <span className="svc-option-name">{s.name}</span>
+                        <span className="svc-option-meta">{s.duration} · {s.price}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="form-group"><label>Fecha Preferida</label><input name="date" type="date" required /></div>
-              <div className="form-group">
+              <div className="form-group" style={{ position: "relative" }} ref={calRef}>
+                <label>Fecha Preferida</label>
+                <input type="hidden" name="date" value={calIsoValue} required />
+                <button
+                  type="button"
+                  className={`cal-trigger${calSelected ? " cal-trigger--selected" : ""}`}
+                  onClick={() => { setCalOpen(o => !o); setSvcOpen(false); setTimeOpen(false); }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                  </svg>
+                  <span style={{ textTransform: calSelected ? "capitalize" : "none" }}>{calLabel}</span>
+                </button>
+                {calOpen && (
+                  <div className="cal-dropdown">
+                    <div className="cal-header">
+                      <button type="button" className="cal-nav" onClick={calPrevMonth}>‹</button>
+                      <span className="cal-month-label">{CAL_MONTHS[calView.getMonth()]} {calView.getFullYear()}</span>
+                      <button type="button" className="cal-nav" onClick={calNextMonth}>›</button>
+                    </div>
+                    <div className="cal-grid">
+                      {CAL_DAYS_HDR.map(d => <span key={d} className="cal-day-hdr">{d}</span>)}
+                      {calDays.map((day, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`cal-day${!day ? " cal-day--empty" : ""}${day && calIsPast(day) ? " cal-day--past" : ""}${day && calIsToday(day) ? " cal-day--today" : ""}${day && calIsSelected(day) ? " cal-day--selected" : ""}`}
+                          onClick={() => day && !calIsPast(day) && calSelectDay(day)}
+                          disabled={!day || calIsPast(day)}
+                        >
+                          {day ?? ""}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="form-group" style={{ position: "relative" }} ref={timeRef}>
                 <label>Hora Preferida</label>
-                <select name="time" required defaultValue="">
-                  <option value="" disabled>Seleccionar hora...</option>
-                  {["09:00","10:30","12:00","15:00","17:00","19:00"].map((h) => <option key={h}>{h}</option>)}
-                </select>
+                <input type="hidden" name="time" value={timeSelected} required />
+                <button
+                  type="button"
+                  className={`cal-trigger${timeSelected ? " cal-trigger--selected" : ""}`}
+                  onClick={() => { setTimeOpen(o => !o); setSvcOpen(false); setCalOpen(false); }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <span>{timeSelected || "Seleccionar hora..."}</span>
+                  <svg style={{ marginLeft: "auto" }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                {timeOpen && (
+                  <div className="time-dropdown">
+                    {["09:00","10:30","12:00","15:00","17:00","19:00"].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        className={`time-slot-btn${timeSelected === t ? " time-slot-btn--selected" : ""}`}
+                        onClick={() => { setTimeSelected(t); setTimeOpen(false); }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="form-group full"><label>Notas Adicionales</label><input type="text" placeholder="Alergias, preferencias especiales..." /></div>
               <div className="form-group full"><button type="submit" className="btn-primary" disabled={formSubmitting}>{formSubmitting ? "Enviando..." : "Confirmar Reserva"}</button></div>
@@ -948,8 +1102,8 @@ export default function Home() {
       <footer>
         <div className="footer-grid">
           <div className="footer-brand">
-            <a href="#hero" className="nav-logo">LUM<span>US</span></a>
-            <p>Estética de alta gama en el corazón de Madrid. Tu bienestar es nuestra pasión desde 2016.</p>
+            <a href="https://lumuslabs.com" target="_blank" rel="noopener noreferrer" className="nav-logo">LUM<span>US</span></a>
+            <p>Estética de alta gama en el corazón de Santiago del Estero. Tu bienestar es nuestra pasión desde 2016.</p>
             <div className="social-links">
               <a href="#" className="social-link" title="Instagram">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
@@ -972,8 +1126,8 @@ export default function Home() {
             <h4>Horarios</h4>
             <p>Lunes – Sábado<br />9:00 – 20:00</p>
             <p style={{ marginTop: "12px" }}>Domingo<br />10:00 – 18:00</p>
-            <p style={{ marginTop: "16px", color: "var(--gold)", fontSize: "12px" }}>+34 911 234 567</p>
-            <p style={{ color: "var(--gold)", fontSize: "12px" }}>lumus@estetica.es</p>
+            <p style={{ marginTop: "16px", color: "var(--gold)", fontSize: "12px" }}>+54 385 400 0000</p>
+            <p style={{ color: "var(--gold)", fontSize: "12px" }}>lumus@estetica.com.ar</p>
           </div>
           <div className="footer-col">
             <h4>Newsletter</h4>
@@ -982,12 +1136,12 @@ export default function Home() {
               <input type="email" placeholder="tu@email.com" />
               <button type="button">→</button>
             </div>
-            <p style={{ marginTop: "16px", fontSize: "11px" }}>Calle Serrano 42<br />28001 Madrid, España</p>
+            <p style={{ marginTop: "16px", fontSize: "11px" }}>Av. Belgrano 450<br />Santiago del Estero, Argentina</p>
           </div>
         </div>
         <div className="footer-bottom">
           <span>© 2024 LUMUS Estética. Todos los derechos reservados.</span>
-          <span>Diseñado con ♥ en Madrid</span>
+          <span>Hecho con ♥ por LumusLabs</span>
         </div>
       </footer>
 

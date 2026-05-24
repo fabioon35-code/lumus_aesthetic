@@ -43,7 +43,7 @@ function clientEmailHtml(data: {
         <tr>
           <td style="background:linear-gradient(135deg,#A0804A,#C9A96E);padding:36px;text-align:center;">
             <p style="margin:0;font-family:Georgia,serif;font-size:32px;font-weight:300;letter-spacing:12px;color:#0A0A0A;">LUMUS</p>
-            <p style="margin:8px 0 0;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:rgba(10,10,10,.7);">Estética de Alta Gama · Madrid</p>
+            <p style="margin:8px 0 0;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:rgba(10,10,10,.7);">Estética de Alta Gama · Santiago del Estero</p>
           </td>
         </tr>
         <!-- Body -->
@@ -85,8 +85,8 @@ function clientEmailHtml(data: {
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
               <tr>
                 <td style="font-size:12px;color:#8A7A64;line-height:1.9;">
-                  <strong style="color:#C9A96E;">📍 Dirección:</strong> Calle Serrano 42, 28001 Madrid<br>
-                  <strong style="color:#C9A96E;">📞 Teléfono:</strong> +34 911 234 567<br>
+                  <strong style="color:#C9A96E;">📍 Dirección:</strong> Av. Belgrano 450, Santiago del Estero<br>
+                  <strong style="color:#C9A96E;">📞 Teléfono:</strong> +54 385 400 0000<br>
                   <strong style="color:#C9A96E;">🕐 Horario:</strong> Lun–Sáb 9:00–20:00 · Dom 10:00–18:00
                 </td>
               </tr>
@@ -97,7 +97,7 @@ function clientEmailHtml(data: {
         <!-- Footer -->
         <tr>
           <td style="padding:20px 36px;border-top:1px solid rgba(201,169,110,.08);text-align:center;">
-            <p style="margin:0;font-size:10px;color:#8A7A64;letter-spacing:1px;">© 2024 LUMUS Estética · lumus@estetica.es</p>
+            <p style="margin:0;font-size:10px;color:#8A7A64;letter-spacing:1px;">© 2024 LUMUS Estética · lumus@estetica.com.ar</p>
           </td>
         </tr>
       </table>
@@ -138,8 +138,8 @@ async function createCalendarEvent(data: {
     requestBody: {
       summary: `LUMUS ✦ ${data.name} — ${data.service}`,
       description: `Reserva ${data.confirmNum}\nCliente: ${data.name}\nTeléfono: ${data.phone}\nEmail: ${data.email}\nServicio: ${data.service} (${duration} min)`,
-      start: { dateTime: start.toISOString(), timeZone: "Europe/Madrid" },
-      end: { dateTime: end.toISOString(), timeZone: "Europe/Madrid" },
+      start: { dateTime: start.toISOString(), timeZone: "America/Argentina/Cordoba" },
+      end: { dateTime: end.toISOString(), timeZone: "America/Argentina/Cordoba" },
       colorId: "5",
     },
   });
