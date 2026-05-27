@@ -495,8 +495,7 @@ section { position: relative; }
 }
 .team-name { font-family: var(--font-serif); font-size: 22px; font-weight: 400; color: var(--cream); margin-bottom: 6px; }
 .team-role { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold); }
-.team-bio { font-size: 12px; line-height: 1.8; color: var(--text-muted); margin-top: 16px; max-height: 0; overflow: hidden; transition: max-height .4s; }
-.team-card:hover .team-bio { max-height: 100px; }
+.team-bio { font-size: 12px; line-height: 1.8; color: var(--text-muted); margin-top: 16px; }
 
 /* GALLERY */
 #gallery { background: var(--black); padding: 120px 5%; }
