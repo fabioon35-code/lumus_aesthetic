@@ -34,11 +34,34 @@ function clientEmailHtml(data: {
 }) {
   return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0A0A0A;font-family:'Montserrat',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0A0A0A;padding:40px 0;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    /* Dark mode overrides — applied automatically when user has dark mode enabled */
+    @media (prefers-color-scheme: dark) {
+      .em-wrap   { background-color: #0A0A0A !important; }
+      .em-card   { background-color: #111111 !important; border-color: rgba(201,169,110,.2) !important; }
+      .em-detail { background-color: rgba(201,169,110,.05) !important; border-color: rgba(201,169,110,.15) !important; }
+      .em-title  { color: #F5EDD8 !important; }
+      .em-body   { color: #8A7A64 !important; }
+      .em-name   { color: #D4C4A8 !important; }
+      .em-val    { color: #F5EDD8 !important; }
+      .em-label  { color: #8A7A64 !important; }
+      .em-gold   { color: #C9A96E !important; }
+      .em-divider{ border-top-color: rgba(201,169,110,.15) !important; }
+      .em-note   { color: #8A7A64 !important; }
+      .em-footer { border-top-color: rgba(201,169,110,.08) !important; }
+      .em-copy   { color: #8A7A64 !important; }
+    }
+  </style>
+</head>
+<body class="em-wrap" style="margin:0;padding:0;background:#F0EAE0;font-family:'Montserrat',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" class="em-wrap" style="background:#F0EAE0;padding:40px 0;">
     <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#111111;border:1px solid rgba(201,169,110,.2);max-width:560px;width:100%;">
+      <table width="560" cellpadding="0" cellspacing="0" class="em-card" style="background:#FFFFFF;border:1px solid #DDD0B8;max-width:560px;width:100%;">
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#A0804A,#C9A96E);padding:36px;text-align:center;">
@@ -49,15 +72,15 @@ function clientEmailHtml(data: {
         <!-- Body -->
         <tr>
           <td style="padding:40px 36px;">
-            <p style="margin:0 0 8px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#C9A96E;">Confirmación de Cita</p>
-            <p style="margin:0 0 24px;font-family:Georgia,serif;font-size:26px;font-weight:300;color:#F5EDD8;line-height:1.2;">
-              ¡Tu reserva está <em style="font-style:italic;color:#E8D5B7;">confirmada</em>!
+            <p class="em-gold" style="margin:0 0 8px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#A0804A;">Confirmación de Cita</p>
+            <p class="em-title" style="margin:0 0 24px;font-family:Georgia,serif;font-size:26px;font-weight:300;color:#2A1F10;line-height:1.2;">
+              ¡Tu reserva está <em style="font-style:italic;color:#C9A96E;">confirmada</em>!
             </p>
-            <p style="margin:0 0 28px;font-size:13px;color:#8A7A64;line-height:1.8;">
-              Hola <strong style="color:#D4C4A8;">${data.name}</strong>, hemos recibido tu reserva y en menos de 2 horas recibirás confirmación de nuestro equipo.
+            <p class="em-body" style="margin:0 0 28px;font-size:13px;color:#6B5A48;line-height:1.8;">
+              Hola <strong class="em-name" style="color:#3A2C1E;">${data.name}</strong>, hemos recibido tu reserva y en menos de 2 horas recibirás confirmación de nuestro equipo.
             </p>
             <!-- Details card -->
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(201,169,110,.05);border:1px solid rgba(201,169,110,.15);margin-bottom:28px;">
+            <table width="100%" cellpadding="0" cellspacing="0" class="em-detail" style="background:#FAF6EF;border:1px solid #DDD0B8;margin-bottom:28px;">
               <tr><td style="padding:24px 28px;">
                 ${[
                   ["Servicio", data.service],
@@ -67,15 +90,15 @@ function clientEmailHtml(data: {
                 ].map(([label, val]) => `
                 <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
                   <tr>
-                    <td style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8A7A64;">${label}</td>
-                    <td align="right" style="font-size:13px;color:#F5EDD8;font-weight:500;">${val}</td>
+                    <td class="em-label" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8A7A64;">${label}</td>
+                    <td align="right" class="em-val" style="font-size:13px;color:#2A1F10;font-weight:500;">${val}</td>
                   </tr>
                 </table>`).join("")}
-                <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(201,169,110,.15);padding-top:16px;margin-top:4px;">
+                <table width="100%" cellpadding="0" cellspacing="0" class="em-divider" style="border-top:1px solid #DDD0B8;padding-top:16px;margin-top:4px;">
                   <tr>
                     <td align="center">
-                      <p style="margin:0;font-family:Georgia,serif;font-size:22px;color:#C9A96E;">${data.confirmNum}</p>
-                      <p style="margin:4px 0 0;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8A7A64;">Número de Confirmación</p>
+                      <p class="em-gold" style="margin:0;font-family:Georgia,serif;font-size:22px;color:#A0804A;">${data.confirmNum}</p>
+                      <p class="em-label" style="margin:4px 0 0;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8A7A64;">Número de Confirmación</p>
                     </td>
                   </tr>
                 </table>
@@ -84,20 +107,20 @@ function clientEmailHtml(data: {
             <!-- Info -->
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
               <tr>
-                <td style="font-size:12px;color:#8A7A64;line-height:1.9;">
-                  <strong style="color:#C9A96E;">📍 Dirección:</strong> Av. Belgrano 450, Santiago del Estero<br>
-                  <strong style="color:#C9A96E;">📞 Teléfono:</strong> +54 385 400 0000<br>
-                  <strong style="color:#C9A96E;">🕐 Horario:</strong> Lun–Sáb 9:00–20:00 · Dom 10:00–18:00
+                <td class="em-note" style="font-size:12px;color:#6B5A48;line-height:1.9;">
+                  <strong class="em-gold" style="color:#A0804A;">📍 Dirección:</strong> Av. Belgrano 450, Santiago del Estero<br>
+                  <strong class="em-gold" style="color:#A0804A;">📞 Teléfono:</strong> +54 385 400 0000<br>
+                  <strong class="em-gold" style="color:#A0804A;">🕐 Horario:</strong> Lun–Sáb 9:00–20:00 · Dom 10:00–18:00
                 </td>
               </tr>
             </table>
-            <p style="margin:0;font-size:12px;color:#8A7A64;line-height:1.8;">Si necesitas modificar o cancelar tu cita, contáctanos con al menos 24h de antelación.</p>
+            <p class="em-note" style="margin:0;font-size:12px;color:#6B5A48;line-height:1.8;">Si necesitas modificar o cancelar tu cita, contáctanos con al menos 24h de antelación.</p>
           </td>
         </tr>
         <!-- Footer -->
         <tr>
-          <td style="padding:20px 36px;border-top:1px solid rgba(201,169,110,.08);text-align:center;">
-            <p style="margin:0;font-size:10px;color:#8A7A64;letter-spacing:1px;">© 2024 LUMUS Estética · lumus@estetica.com.ar</p>
+          <td class="em-footer" style="padding:20px 36px;border-top:1px solid #E8DDD0;text-align:center;">
+            <p class="em-copy" style="margin:0;font-size:10px;color:#8A7A64;letter-spacing:1px;">© 2024 LUMUS Estética · lumus@estetica.com.ar</p>
           </td>
         </tr>
       </table>

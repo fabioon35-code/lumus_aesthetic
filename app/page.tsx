@@ -255,19 +255,23 @@ export default function Home() {
       const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && !counted) {
           counted = true;
-          counters.forEach((el) => {
+          counters.forEach((el, i) => {
             const target = +(el.dataset.target || 0);
-            const suffix = target >= 100 ? "+" : "";
-            let current = 0;
-            const step = target / 60;
-            const t = setInterval(() => {
-              current = Math.min(current + step, target);
-              el.textContent = Math.floor(current) + suffix;
-              if (current >= target) clearInterval(t);
-            }, 25);
+            const delay = i * 120;
+            setTimeout(() => {
+              const duration = 1800;
+              const start = performance.now();
+              const tick = (now: number) => {
+                const t = Math.min((now - start) / duration, 1);
+                const ease = 1 - Math.pow(1 - t, 4); // quartic easeOut
+                el.textContent = Math.floor(ease * target) + "+";
+                if (t < 1) requestAnimationFrame(tick);
+              };
+              requestAnimationFrame(tick);
+            }, delay);
           });
         }
-      }, { threshold: 0.5 });
+      }, { threshold: 0.2 });
       observer.observe(statsEl);
     }
 
@@ -1105,13 +1109,13 @@ export default function Home() {
             <a href="https://lumuslabs.com" target="_blank" rel="noopener noreferrer" className="nav-logo">LUM<span>US</span></a>
             <p>Estética de alta gama en el corazón de Santiago del Estero. Tu bienestar es nuestra pasión desde 2016.</p>
             <div className="social-links">
-              <a href="#" className="social-link" title="Instagram">
+              <a href="https://instagram.com/lumuslabs" target="_blank" rel="noopener noreferrer" className="social-link" title="Instagram">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
               </a>
-              <a href="#" className="social-link" title="Facebook">
+              <a href="https://instagram.com/lumuslabs" target="_blank" rel="noopener noreferrer" className="social-link" title="Facebook">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
               </a>
-              <a href="#" className="social-link" title="WhatsApp">
+              <a href="https://wa.me/5493855067240" target="_blank" rel="noopener noreferrer" className="social-link" title="WhatsApp">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
               </a>
             </div>
@@ -1148,7 +1152,7 @@ export default function Home() {
       {/* WHATSAPP BUTTON */}
       <a
         id="whatsapp-btn"
-        href="https://wa.me/34911234567"
+        href="https://wa.me/5493855067240"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="WhatsApp"
