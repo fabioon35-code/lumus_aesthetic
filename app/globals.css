@@ -15,7 +15,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   font-family: var(--font-sans);
   background: var(--black);
@@ -158,6 +158,7 @@ nav.scrolled {
 /* HERO */
 #hero {
   height: 100vh;
+  height: 100dvh;
   position: relative;
   display: flex;
   align-items: center;
@@ -917,27 +918,90 @@ footer { background: var(--dark); border-top: 1px solid rgba(201,169,110,.1); pa
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
   .gallery-services-grid { grid-template-columns: repeat(2, 1fr); }
+  .section-pad { padding: 80px 5%; }
+  #services, #about, #team, #gallery, #testimonials, #booking { padding: 80px 5%; }
+  footer { padding: 60px 5% 32px; }
+  .services-header, .team-header, .test-header { margin-bottom: 48px; }
+  .gallery-header { margin-bottom: 40px; }
 }
+
 @media (max-width: 640px) {
+  /* Nav */
   .nav-links { display: none; }
   .hamburger { display: flex; }
+
+  /* Hero */
+  .hero-eyebrow { font-size: 9px; letter-spacing: 3px; }
+  .hero-title { font-size: clamp(30px, 9vw, 44px); }
+  .hero-sub { font-size: 12px; margin-bottom: 28px; }
+  .hero-ctas { gap: 10px; }
+  .hero-ctas .btn-primary, .hero-ctas .btn-outline { padding: 13px 24px; font-size: 10px; }
+  .hero-scroll { bottom: 20px; }
+
+  /* Sections */
+  .section-pad { padding: 60px 5%; }
+  #services, #about, #team, #gallery, #testimonials, #booking { padding: 60px 5%; }
+  footer { padding: 48px 5% 24px; }
+  .booking-inner > p { margin-bottom: 36px; }
+
+  /* Services */
+  .services-grid { grid-template-columns: 1fr; }
+  .service-card { padding: 32px 24px; }
+  .services-header { margin-bottom: 36px; }
+
+  /* About */
+  .about-image { height: 280px; }
+  .about-badge { width: 110px; height: 110px; bottom: -14px; left: -14px; }
+  .about-badge span:first-child { font-size: 28px; }
+  .about-stats { grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; padding-top: 36px; }
+  .stat-number { font-size: 36px; }
+  .stat-label { font-size: 9px; }
+
+  /* Team */
+  .team-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .team-photo, .team-photo-wrap { width: 140px; height: 140px; }
+
+  /* Gallery */
+  .gallery-services-grid { grid-template-columns: 1fr; gap: 24px; }
+
+  /* Testimonials */
+  .test-slide { padding: 28px 20px; }
+  .test-quote { font-size: 17px; }
+
+  /* Booking */
   .booking-form { grid-template-columns: 1fr; }
   .form-group.full { grid-column: 1; }
-  .services-grid { grid-template-columns: 1fr; }
-  .gallery-services-grid { grid-template-columns: 1fr; }
+
+  /* Footer */
   .footer-grid { grid-template-columns: 1fr; }
-  #chat-window { width: calc(100vw - 32px); right: 16px; bottom: 100px; }
-  #chat-btn { right: 16px; bottom: 16px; }
-  #whatsapp-btn { left: 16px; bottom: 16px; }
-  .about-stats { grid-template-columns: repeat(3, 1fr); }
-  .hero-title { font-size: 40px; }
-  .test-slide { padding: 32px 24px; }
+  .footer-bottom { flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+  .footer-brand p { max-width: 100%; }
+
+  /* Modal */
   .modal-box { padding: 40px 24px; }
+
+  /* Fixed buttons — above mobile browser chrome */
+  #chat-btn  { right: 16px; bottom: 80px; width: 54px; height: 54px; }
+  #whatsapp-btn { left: 16px; bottom: 80px; width: 54px; height: 54px; }
+  #chat-window { width: calc(100vw - 24px); right: 12px; bottom: 150px; max-height: 68vh; }
+
+  /* Cursor off on touch */
+  body { cursor: auto; }
+  .cursor, .cursor-follower { display: none; }
 }
 
 /* AOS animations */
 [data-aos] { pointer-events: none; }
 [data-aos].aos-animate { pointer-events: auto; }
+
+/* Mobile: shorten hero animation delays so content visible before address bar hides */
+@media (max-width: 640px) {
+  .hero-eyebrow { animation-delay: .05s !important; }
+  .hero-title   { animation-delay: .15s !important; }
+  .hero-sub     { animation-delay: .25s !important; }
+  .hero-ctas    { animation-delay: .35s !important; }
+  .hero-scroll  { animation-delay: .5s  !important; }
+}
 
 /* ── Calendar ──────────────────────────────────────────────────────── */
 .cal-trigger {
